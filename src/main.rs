@@ -95,15 +95,16 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         let tera = Tera::new("templates/**/*").unwrap();
         App::new()
-        .data(tera)
-        .route("/", web::get().to(index))
-        .route("/signup", web::get().to(signup))
-        .route("/signup", web::post().to(process_signup))
-        .route("/login", web::get().to(login))
-        .route("/login", web::post().to(process_login))
-        .route("/submission", web::get().to(submission))
-        .route("/submission", web::post().to(process_submission))
+            .data(tera)
+            .route("/", web::get().to(index))
+            .route("/signup", web::get().to(signup))
+            .route("/signup", web::post().to(process_signup))
+            .route("/login", web::get().to(login))
+            .route("/login", web::post().to(process_login))
+            .route("/submission", web::get().to(submission))
+            .route("/submission", web::post().to(process_submission))
     })
+    .bind("0.0.0.0")?
     .bind("127.0.0.1:8000")?
     .bind("192.168.43.29:8000")?
     .run()
