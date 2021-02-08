@@ -1,6 +1,16 @@
+#[macro_use]
+extern crate diesel;
+pub mod schema;
+pub mod models;
+
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use serde::{Deserialize, Serialize};
 use tera::{Context, Tera};
+use diesel::{insert_into, prelude::*};
+use diesel::pg::PgConnection;
+use dotenv::dotenv;
+
+use models::{User, NewUser};
 
 #[derive(Serialize)]
 struct Post {
@@ -9,12 +19,12 @@ struct Post {
     author: String,
 }
 
-#[derive(Debug, Deserialize)]
+/* #[derive(Debug, Deserialize)]
 struct User {
     username: String,
     email: String,
     password: String,
-}
+} */
 
 #[derive(Debug, Deserialize)]
 struct LoginUser {
@@ -75,7 +85,17 @@ async fn submission(tera: web::Data<Tera>) -> impl Responder {
     HttpResponse::Ok().body(rendered)
 }
 
-async fn process_signup(data: web::Form<User>) -> impl Responder {
+async fn process_signup(data: web::Form<NewUser>) -> impl Responder {
+    use schema::users;
+
+    let connection = establish_connection();
+
+    diesel::insert_into(users::table)
+    .values(&*data)
+    .get_result::<User>(&connection)
+    .expect("Not registered successfully");
+
+
     println!("New user signed up: {}", data.username);
     HttpResponse::Ok().body("New signup successful")
 }
@@ -88,6 +108,16 @@ async fn process_login(data: web::Form<LoginUser>) -> impl Responder {
 async fn process_submission(data: web::Form<Submission>) -> impl Responder {
     println!("Post {} submitted successfully", data.title);
     HttpResponse::Ok().body(format!("Posted successfully"))
+}
+
+fn establish_connection() -> PgConnection {
+    dotenv().ok();
+
+    let database_url = std::env::var("DATABASE_URL")
+        .expect("Database not found");
+
+    PgConnection::establish(&database_url)
+    .expect(&format!("Not connecting to database"))
 }
 
 #[actix_web::main]
@@ -104,7 +134,6 @@ async fn main() -> std::io::Result<()> {
             .route("/submission", web::get().to(submission))
             .route("/submission", web::post().to(process_submission))
     })
-    .bind("0.0.0.0")?
     .bind("127.0.0.1:8000")?
     .bind("192.168.43.29:8000")?
     .run()

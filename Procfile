@@ -1,2 +1,2 @@
 web ./target/release/hacker-clone
-release: ./ migration run
+release: ./target/release/diesel migration run
