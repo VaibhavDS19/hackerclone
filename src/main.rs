@@ -10,26 +10,13 @@ use diesel::{insert_into, prelude::*};
 use diesel::pg::PgConnection;
 use dotenv::dotenv;
 
-use models::{User, NewUser};
+use models::{User, NewUser, LoginUser};
 
 #[derive(Serialize)]
 struct Post {
     title: String,
     link: String,
     author: String,
-}
-
-/* #[derive(Debug, Deserialize)]
-struct User {
-    username: String,
-    email: String,
-    password: String,
-} */
-
-#[derive(Debug, Deserialize)]
-struct LoginUser {
-    username: String,
-    password: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -101,8 +88,27 @@ async fn process_signup(data: web::Form<NewUser>) -> impl Responder {
 }
 
 async fn process_login(data: web::Form<LoginUser>) -> impl Responder {
-    println!("Logged in: {}", data.username);
-    HttpResponse::Ok().body(format!("Login successful"))
+    use schema::users::dsl::{username, users};
+
+    let connection = establish_connection();
+    let user = users.filter(username.eq(&data.username)).first::<User>(&connection);
+    
+    match user {
+        Ok(u) => {
+            if u.password == data.password {
+                println!("{:?}", data);
+                HttpResponse::Ok().body(format!("Login successful"))
+            } else {
+                println!("Incorrect password");
+                HttpResponse::Ok().body("Incorrect password.")
+            }
+        },
+        Err(e) => {
+            println!("{:?}", e);
+            HttpResponse::Ok().body("User doesn't exist")
+        }
+    }
+    
 }
 
 async fn process_submission(data: web::Form<Submission>) -> impl Responder {
